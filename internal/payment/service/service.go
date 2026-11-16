@@ -18,16 +18,46 @@ type PaymentRepository interface {
 	UpdateStatus(ctx context.Context, id string, status domain.TransactionStatus, errorMsg string) error
 }
 
+// TransferEventPublisher is an integration point with external systems (Kafka/ABS).
+// For local/dev and tests use MockTransferEventPublisher.
+type TransferEventPublisher interface {
+	PublishTransferCompleted(ctx context.Context, tx *domain.Transaction) error
+}
+
+type MockTransferEventPublisher struct {
+	Published []*domain.Transaction
+	Err       error
+}
+
+func (m *MockTransferEventPublisher) PublishTransferCompleted(_ context.Context, tx *domain.Transaction) error {
+	if m.Err != nil {
+		return m.Err
+	}
+	if m != nil {
+		m.Published = append(m.Published, tx)
+	}
+	return nil
+}
+
 type PaymentService struct {
-	repo PaymentRepository
+	repo          PaymentRepository
 	accountClient accountpb.AccountServiceClient
+	publisher     TransferEventPublisher
 }
 
 func NewPaymentService(repo PaymentRepository, accountClient accountpb.AccountServiceClient) *PaymentService {
 	return &PaymentService{
 		repo:          repo,
 		accountClient: accountClient,
+		publisher:     &MockTransferEventPublisher{},
 	}
+}
+
+func NewPaymentServiceWithPublisher(repo PaymentRepository, accountClient accountpb.AccountServiceClient, publisher TransferEventPublisher) *PaymentService {
+	if publisher == nil {
+		publisher = &MockTransferEventPublisher{}
+	}
+	return &PaymentService{repo: repo, accountClient: accountClient, publisher: publisher}
 }
 
 func (s *PaymentService) ProcessPayment(
@@ -52,13 +82,13 @@ func (s *PaymentService) ProcessPayment(
 
 	existingTx, err := s.repo.GetByIdempotencyKey(ctx, idempotencyKey)
 	if err == nil {
-		switch existingTx.Status{
+		switch existingTx.Status {
 		case domain.StatusSuccess:
 			return existingTx, nil
 		case domain.StatusPending:
-			return  nil, fmt.Errorf("a payment with this key is already being processed")
+			return nil, fmt.Errorf("a payment with this key is already being processed")
 		case domain.StatusFailed:
-			return nil, fmt.Errorf("the previous payment attempt was rejected: %w", err)
+			return nil, fmt.Errorf("the previous payment attempt was rejected: %s", existingTx.ErrorMessage)
 		}
 	} else if !errors.Is(err, domain.ErrTransactionNotFound) {
 		return nil, fmt.Errorf("idempotency check error: %w", err)
@@ -74,10 +104,10 @@ func (s *PaymentService) ProcessPayment(
 	}
 
 	if err := s.repo.CreatePending(ctx, tx); err != nil {
-		if errors.Is(err, domain.ErrDuplicateTransaction){
+		if errors.Is(err, domain.ErrDuplicateTransaction) {
 			return nil, fmt.Errorf("a request with this key has already been recorded")
 		}
-		return  nil, fmt. Errorf("failed to register transaction: %w", err)
+		return nil, fmt.Errorf("failed to register transaction: %w", err)
 	}
 
 	transferReq := &accountpb.ExecuteTransferRequest{
@@ -112,10 +142,12 @@ func (s *PaymentService) ProcessPayment(
 	}
 
 	if err := s.repo.UpdateStatus(ctx, tx.ID, domain.StatusSuccess, ""); err != nil {
-		return nil, fmt.Errorf("платеж проведен, но возникла ошибка обновления статуса: %w", err)	
+		return nil, fmt.Errorf("платеж проведен, но возникла ошибка обновления статуса: %w", err)
 	}
 
 	tx.Status = domain.StatusSuccess
+	// Integration with external message bus/ABS is mocked.
+	_ = s.publisher.PublishTransferCompleted(ctx, tx)
 	return tx, nil
 }
 

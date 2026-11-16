@@ -461,6 +461,346 @@ func (x *DepositResponse) GetBalanceAfter() string {
 	return ""
 }
 
+type Card struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	PanMask       string                 `protobuf:"bytes,3,opt,name=pan_mask,json=panMask,proto3" json:"pan_mask,omitempty"`
+	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Card) Reset() {
+	*x = Card{}
+	mi := &file_account_account_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Card) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Card) ProtoMessage() {}
+
+func (x *Card) ProtoReflect() protoreflect.Message {
+	mi := &file_account_account_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Card.ProtoReflect.Descriptor instead.
+func (*Card) Descriptor() ([]byte, []int) {
+	return file_account_account_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Card) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Card) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *Card) GetPanMask() string {
+	if x != nil {
+		return x.PanMask
+	}
+	return ""
+}
+
+func (x *Card) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *Card) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+type IssueCardRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueCardRequest) Reset() {
+	*x = IssueCardRequest{}
+	mi := &file_account_account_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueCardRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueCardRequest) ProtoMessage() {}
+
+func (x *IssueCardRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_account_account_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueCardRequest.ProtoReflect.Descriptor instead.
+func (*IssueCardRequest) Descriptor() ([]byte, []int) {
+	return file_account_account_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *IssueCardRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+type IssueCardResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Card          *Card                  `protobuf:"bytes,1,opt,name=card,proto3" json:"card,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueCardResponse) Reset() {
+	*x = IssueCardResponse{}
+	mi := &file_account_account_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueCardResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueCardResponse) ProtoMessage() {}
+
+func (x *IssueCardResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_account_account_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueCardResponse.ProtoReflect.Descriptor instead.
+func (*IssueCardResponse) Descriptor() ([]byte, []int) {
+	return file_account_account_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *IssueCardResponse) GetCard() *Card {
+	if x != nil {
+		return x.Card
+	}
+	return nil
+}
+
+type GetCardsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCardsRequest) Reset() {
+	*x = GetCardsRequest{}
+	mi := &file_account_account_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCardsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCardsRequest) ProtoMessage() {}
+
+func (x *GetCardsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_account_account_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCardsRequest.ProtoReflect.Descriptor instead.
+func (*GetCardsRequest) Descriptor() ([]byte, []int) {
+	return file_account_account_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetCardsRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+type GetCardsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cards         []*Card                `protobuf:"bytes,1,rep,name=cards,proto3" json:"cards,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCardsResponse) Reset() {
+	*x = GetCardsResponse{}
+	mi := &file_account_account_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCardsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCardsResponse) ProtoMessage() {}
+
+func (x *GetCardsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_account_account_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCardsResponse.ProtoReflect.Descriptor instead.
+func (*GetCardsResponse) Descriptor() ([]byte, []int) {
+	return file_account_account_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetCardsResponse) GetCards() []*Card {
+	if x != nil {
+		return x.Cards
+	}
+	return nil
+}
+
+type BlockCardRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CardId        string                 `protobuf:"bytes,1,opt,name=card_id,json=cardId,proto3" json:"card_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BlockCardRequest) Reset() {
+	*x = BlockCardRequest{}
+	mi := &file_account_account_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BlockCardRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BlockCardRequest) ProtoMessage() {}
+
+func (x *BlockCardRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_account_account_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BlockCardRequest.ProtoReflect.Descriptor instead.
+func (*BlockCardRequest) Descriptor() ([]byte, []int) {
+	return file_account_account_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *BlockCardRequest) GetCardId() string {
+	if x != nil {
+		return x.CardId
+	}
+	return ""
+}
+
+type BlockCardResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Card          *Card                  `protobuf:"bytes,1,opt,name=card,proto3" json:"card,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BlockCardResponse) Reset() {
+	*x = BlockCardResponse{}
+	mi := &file_account_account_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BlockCardResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BlockCardResponse) ProtoMessage() {}
+
+func (x *BlockCardResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_account_account_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BlockCardResponse.ProtoReflect.Descriptor instead.
+func (*BlockCardResponse) Descriptor() ([]byte, []int) {
+	return file_account_account_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *BlockCardResponse) GetCard() *Card {
+	if x != nil {
+		return x.Card
+	}
+	return nil
+}
+
 var File_account_account_proto protoreflect.FileDescriptor
 
 const file_account_account_proto_rawDesc = "" +
@@ -496,13 +836,38 @@ const file_account_account_proto_rawDesc = "" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\"N\n" +
 	"\x0fDepositResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12#\n" +
-	"\rbalance_after\x18\x02 \x01(\tR\fbalanceAfter2\xbb\x02\n" +
+	"\rbalance_after\x18\x02 \x01(\tR\fbalanceAfter\"\x87\x01\n" +
+	"\x04Card\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\tR\taccountId\x12\x19\n" +
+	"\bpan_mask\x18\x03 \x01(\tR\apanMask\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\"1\n" +
+	"\x10IssueCardRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\"6\n" +
+	"\x11IssueCardResponse\x12!\n" +
+	"\x04card\x18\x01 \x01(\v2\r.account.CardR\x04card\"0\n" +
+	"\x0fGetCardsRequest\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x01 \x01(\tR\taccountId\"7\n" +
+	"\x10GetCardsResponse\x12#\n" +
+	"\x05cards\x18\x01 \x03(\v2\r.account.CardR\x05cards\"+\n" +
+	"\x10BlockCardRequest\x12\x17\n" +
+	"\acard_id\x18\x01 \x01(\tR\x06cardId\"6\n" +
+	"\x11BlockCardResponse\x12!\n" +
+	"\x04card\x18\x01 \x01(\v2\r.account.CardR\x04card2\x84\x04\n" +
 	"\x0eAccountService\x12E\n" +
 	"\n" +
 	"GetAccount\x12\x1a.account.GetAccountRequest\x1a\x1b.account.GetAccountResponse\x12N\n" +
 	"\rCreateAccount\x12\x1d.account.CreateAccountRequest\x1a\x1e.account.CreateAccountResponse\x12T\n" +
 	"\x0fExecuteTransfer\x12\x1f.account.ExecuteTransferRequest\x1a .account.ExecuteTransferResponse\x12<\n" +
-	"\aDeposit\x12\x17.account.DepositRequest\x1a\x18.account.DepositResponseB%Z#grpc-bank/pkg/api/account;accountpbb\x06proto3"
+	"\aDeposit\x12\x17.account.DepositRequest\x1a\x18.account.DepositResponse\x12B\n" +
+	"\tIssueCard\x12\x19.account.IssueCardRequest\x1a\x1a.account.IssueCardResponse\x12?\n" +
+	"\bGetCards\x12\x18.account.GetCardsRequest\x1a\x19.account.GetCardsResponse\x12B\n" +
+	"\tBlockCard\x12\x19.account.BlockCardRequest\x1a\x1a.account.BlockCardResponseB%Z#grpc-bank/pkg/api/account;accountpbb\x06proto3"
 
 var (
 	file_account_account_proto_rawDescOnce sync.Once
@@ -516,7 +881,7 @@ func file_account_account_proto_rawDescGZIP() []byte {
 	return file_account_account_proto_rawDescData
 }
 
-var file_account_account_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_account_account_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_account_account_proto_goTypes = []any{
 	(*GetAccountRequest)(nil),       // 0: account.GetAccountRequest
 	(*GetAccountResponse)(nil),      // 1: account.GetAccountResponse
@@ -526,21 +891,37 @@ var file_account_account_proto_goTypes = []any{
 	(*ExecuteTransferResponse)(nil), // 5: account.ExecuteTransferResponse
 	(*DepositRequest)(nil),          // 6: account.DepositRequest
 	(*DepositResponse)(nil),         // 7: account.DepositResponse
+	(*Card)(nil),                    // 8: account.Card
+	(*IssueCardRequest)(nil),        // 9: account.IssueCardRequest
+	(*IssueCardResponse)(nil),       // 10: account.IssueCardResponse
+	(*GetCardsRequest)(nil),         // 11: account.GetCardsRequest
+	(*GetCardsResponse)(nil),        // 12: account.GetCardsResponse
+	(*BlockCardRequest)(nil),        // 13: account.BlockCardRequest
+	(*BlockCardResponse)(nil),       // 14: account.BlockCardResponse
 }
 var file_account_account_proto_depIdxs = []int32{
-	0, // 0: account.AccountService.GetAccount:input_type -> account.GetAccountRequest
-	2, // 1: account.AccountService.CreateAccount:input_type -> account.CreateAccountRequest
-	4, // 2: account.AccountService.ExecuteTransfer:input_type -> account.ExecuteTransferRequest
-	6, // 3: account.AccountService.Deposit:input_type -> account.DepositRequest
-	1, // 4: account.AccountService.GetAccount:output_type -> account.GetAccountResponse
-	3, // 5: account.AccountService.CreateAccount:output_type -> account.CreateAccountResponse
-	5, // 6: account.AccountService.ExecuteTransfer:output_type -> account.ExecuteTransferResponse
-	7, // 7: account.AccountService.Deposit:output_type -> account.DepositResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	8,  // 0: account.IssueCardResponse.card:type_name -> account.Card
+	8,  // 1: account.GetCardsResponse.cards:type_name -> account.Card
+	8,  // 2: account.BlockCardResponse.card:type_name -> account.Card
+	0,  // 3: account.AccountService.GetAccount:input_type -> account.GetAccountRequest
+	2,  // 4: account.AccountService.CreateAccount:input_type -> account.CreateAccountRequest
+	4,  // 5: account.AccountService.ExecuteTransfer:input_type -> account.ExecuteTransferRequest
+	6,  // 6: account.AccountService.Deposit:input_type -> account.DepositRequest
+	9,  // 7: account.AccountService.IssueCard:input_type -> account.IssueCardRequest
+	11, // 8: account.AccountService.GetCards:input_type -> account.GetCardsRequest
+	13, // 9: account.AccountService.BlockCard:input_type -> account.BlockCardRequest
+	1,  // 10: account.AccountService.GetAccount:output_type -> account.GetAccountResponse
+	3,  // 11: account.AccountService.CreateAccount:output_type -> account.CreateAccountResponse
+	5,  // 12: account.AccountService.ExecuteTransfer:output_type -> account.ExecuteTransferResponse
+	7,  // 13: account.AccountService.Deposit:output_type -> account.DepositResponse
+	10, // 14: account.AccountService.IssueCard:output_type -> account.IssueCardResponse
+	12, // 15: account.AccountService.GetCards:output_type -> account.GetCardsResponse
+	14, // 16: account.AccountService.BlockCard:output_type -> account.BlockCardResponse
+	10, // [10:17] is the sub-list for method output_type
+	3,  // [3:10] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_account_account_proto_init() }
@@ -554,7 +935,7 @@ func file_account_account_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_account_account_proto_rawDesc), len(file_account_account_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -15,6 +15,9 @@ type AccountRepository interface {
 	Create(ctx context.Context, acc *domain.Account) error
 	Transfer(ctx context.Context, fromID, toID string, amount decimal.Decimal) (decimal.Decimal, error)
 	Deposit(ctx context.Context, accountID string, amount decimal.Decimal) (decimal.Decimal, error)
+	CreateCard(ctx context.Context, card *domain.Card) error
+	GetCardsByAccountID(ctx context.Context, accountID string) ([]*domain.Card, error)
+	BlockCard(ctx context.Context, cardID string) (*domain.Card, error)
 }
 
 type AccountService struct {
@@ -43,7 +46,6 @@ func (s *AccountService) CreateAccount(ctx context.Context, userID, currency str
 	}
 
 	accNumber, err := generateAccountNumber()
-
 	if err != nil {
 		return nil, fmt.Errorf("generation account number error: %w", err)
 	}
@@ -75,9 +77,8 @@ func (s *AccountService) Transfer(ctx context.Context, fromID, toID string, amou
 }
 
 func (s *AccountService) Deposit(ctx context.Context, accountID string, amount decimal.Decimal) (decimal.Decimal, error) {
-
 	if accountID == "" {
-		return decimal.Zero, fmt.Errorf("user_id can not be empty")
+		return decimal.Zero, fmt.Errorf("account_id can not be empty")
 	}
 
 	if amount.LessThanOrEqual(decimal.Zero) {
@@ -85,6 +86,45 @@ func (s *AccountService) Deposit(ctx context.Context, accountID string, amount d
 	}
 
 	return s.repo.Deposit(ctx, accountID, amount)
+}
+
+func (s *AccountService) IssueCard(ctx context.Context, accountID string) (*domain.Card, error) {
+	if accountID == "" {
+		return nil, fmt.Errorf("account_id can not be empty")
+	}
+	if _, err := s.repo.GetbyID(ctx, accountID); err != nil {
+		return nil, err
+	}
+	pan, err := generateCardPANMask()
+	if err != nil {
+		return nil, fmt.Errorf("generate card pan mask: %w", err)
+	}
+	card := &domain.Card{
+		AccountID: accountID,
+		PanMask:   pan,
+		Status:    domain.CardStatusActive,
+	}
+	if err := s.repo.CreateCard(ctx, card); err != nil {
+		return nil, err
+	}
+	return card, nil
+}
+
+func (s *AccountService) GetCards(ctx context.Context, accountID string) ([]*domain.Card, error) {
+	if accountID == "" {
+		return nil, fmt.Errorf("account_id can not be empty")
+	}
+	if _, err := s.repo.GetbyID(ctx, accountID); err != nil {
+		return nil, err
+	}
+	return s.repo.GetCardsByAccountID(ctx, accountID)
+}
+
+func (s *AccountService) BlockCard(ctx context.Context, cardID string) (*domain.Card, error) {
+	if cardID == "" {
+		return nil, fmt.Errorf("card_id can not be empty")
+	}
+	return s.repo.BlockCard(ctx, cardID)
 }
 
 func generateAccountNumber() (string, error) {
@@ -96,4 +136,13 @@ func generateAccountNumber() (string, error) {
 	}
 	suffix := fmt.Sprintf("%012d", randomNum)
 	return prefix + suffix, nil
+}
+
+func generateCardPANMask() (string, error) {
+	maxLimit := new(big.Int).Exp(big.NewInt(10), big.NewInt(4), nil)
+	n, err := rand.Int(rand.Reader, maxLimit)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("4081 78** **** %04d", n.Int64()), nil
 }

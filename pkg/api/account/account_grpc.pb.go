@@ -23,6 +23,9 @@ const (
 	AccountService_CreateAccount_FullMethodName   = "/account.AccountService/CreateAccount"
 	AccountService_ExecuteTransfer_FullMethodName = "/account.AccountService/ExecuteTransfer"
 	AccountService_Deposit_FullMethodName         = "/account.AccountService/Deposit"
+	AccountService_IssueCard_FullMethodName       = "/account.AccountService/IssueCard"
+	AccountService_GetCards_FullMethodName        = "/account.AccountService/GetCards"
+	AccountService_BlockCard_FullMethodName       = "/account.AccountService/BlockCard"
 )
 
 // AccountServiceClient is the client API for AccountService service.
@@ -33,6 +36,9 @@ type AccountServiceClient interface {
 	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error)
 	ExecuteTransfer(ctx context.Context, in *ExecuteTransferRequest, opts ...grpc.CallOption) (*ExecuteTransferResponse, error)
 	Deposit(ctx context.Context, in *DepositRequest, opts ...grpc.CallOption) (*DepositResponse, error)
+	IssueCard(ctx context.Context, in *IssueCardRequest, opts ...grpc.CallOption) (*IssueCardResponse, error)
+	GetCards(ctx context.Context, in *GetCardsRequest, opts ...grpc.CallOption) (*GetCardsResponse, error)
+	BlockCard(ctx context.Context, in *BlockCardRequest, opts ...grpc.CallOption) (*BlockCardResponse, error)
 }
 
 type accountServiceClient struct {
@@ -83,6 +89,36 @@ func (c *accountServiceClient) Deposit(ctx context.Context, in *DepositRequest, 
 	return out, nil
 }
 
+func (c *accountServiceClient) IssueCard(ctx context.Context, in *IssueCardRequest, opts ...grpc.CallOption) (*IssueCardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IssueCardResponse)
+	err := c.cc.Invoke(ctx, AccountService_IssueCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) GetCards(ctx context.Context, in *GetCardsRequest, opts ...grpc.CallOption) (*GetCardsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCardsResponse)
+	err := c.cc.Invoke(ctx, AccountService_GetCards_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) BlockCard(ctx context.Context, in *BlockCardRequest, opts ...grpc.CallOption) (*BlockCardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BlockCardResponse)
+	err := c.cc.Invoke(ctx, AccountService_BlockCard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AccountServiceServer is the server API for AccountService service.
 // All implementations must embed UnimplementedAccountServiceServer
 // for forward compatibility.
@@ -91,6 +127,9 @@ type AccountServiceServer interface {
 	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
 	ExecuteTransfer(context.Context, *ExecuteTransferRequest) (*ExecuteTransferResponse, error)
 	Deposit(context.Context, *DepositRequest) (*DepositResponse, error)
+	IssueCard(context.Context, *IssueCardRequest) (*IssueCardResponse, error)
+	GetCards(context.Context, *GetCardsRequest) (*GetCardsResponse, error)
+	BlockCard(context.Context, *BlockCardRequest) (*BlockCardResponse, error)
 	mustEmbedUnimplementedAccountServiceServer()
 }
 
@@ -112,6 +151,15 @@ func (UnimplementedAccountServiceServer) ExecuteTransfer(context.Context, *Execu
 }
 func (UnimplementedAccountServiceServer) Deposit(context.Context, *DepositRequest) (*DepositResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Deposit not implemented")
+}
+func (UnimplementedAccountServiceServer) IssueCard(context.Context, *IssueCardRequest) (*IssueCardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IssueCard not implemented")
+}
+func (UnimplementedAccountServiceServer) GetCards(context.Context, *GetCardsRequest) (*GetCardsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCards not implemented")
+}
+func (UnimplementedAccountServiceServer) BlockCard(context.Context, *BlockCardRequest) (*BlockCardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BlockCard not implemented")
 }
 func (UnimplementedAccountServiceServer) mustEmbedUnimplementedAccountServiceServer() {}
 func (UnimplementedAccountServiceServer) testEmbeddedByValue()                        {}
@@ -206,6 +254,60 @@ func _AccountService_Deposit_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AccountService_IssueCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IssueCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).IssueCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_IssueCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).IssueCard(ctx, req.(*IssueCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountService_GetCards_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCardsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).GetCards(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_GetCards_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).GetCards(ctx, req.(*GetCardsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountService_BlockCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BlockCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).BlockCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountService_BlockCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).BlockCard(ctx, req.(*BlockCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AccountService_ServiceDesc is the grpc.ServiceDesc for AccountService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +330,18 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Deposit",
 			Handler:    _AccountService_Deposit_Handler,
+		},
+		{
+			MethodName: "IssueCard",
+			Handler:    _AccountService_IssueCard_Handler,
+		},
+		{
+			MethodName: "GetCards",
+			Handler:    _AccountService_GetCards_Handler,
+		},
+		{
+			MethodName: "BlockCard",
+			Handler:    _AccountService_BlockCard_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

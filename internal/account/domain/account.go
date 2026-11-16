@@ -8,11 +8,17 @@ import (
 )
 
 var (
-	ErrAccountNotFound     = errors.New("account Not Found")
-	ErrInsufficientFunds   = errors.New("insufficient Funds")
-	ErrInvalidAmount       = errors.New("the transfer amount must be strictly positive")
-	ErrSameAccountTransfer = errors.New("you cannot transfer funds to the same account")
+	ErrAccountNotFound      = errors.New("account not found")
+	ErrInsufficientFunds    = errors.New("insufficient funds")
+	ErrInvalidAmount        = errors.New("the transfer amount must be strictly positive")
+	ErrSameAccountTransfer  = errors.New("you cannot transfer funds to the same account")
 	ErrAccountAlreadyExists = errors.New("the user already has an account in this currency")
+	ErrCardNotFound         = errors.New("card not found")
+)
+
+const (
+	CardStatusActive  = "ACTIVE"
+	CardStatusBlocked = "BLOCKED"
 )
 
 type Account struct {
@@ -25,7 +31,9 @@ type Account struct {
 }
 
 type Card struct {
-	ID         string
-	AccountID  string
-	CardNumber string
+	ID        string
+	AccountID string
+	PanMask   string
+	Status    string
+	CreatedAt time.Time
 }

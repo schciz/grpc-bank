@@ -12,9 +12,14 @@ func NewRouter(h *GatewayHandler) *chi.Mux {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/auth/login", h.Login)
 		r.Post("/accounts", h.CreateAccount)
 		r.Get("/accounts/{id}", h.GetAccount)
 		r.Post("/accounts/deposit", h.Deposit)
+		r.Post("/accounts/{accountId}/cards", h.IssueCard)
+		r.Get("/accounts/{accountId}/cards", h.GetCards)
+		r.Get("/accounts/{id}/statement", h.GetStatement)
+		r.Post("/cards/{id}/block", h.BlockCard)
 		r.Post("/transfers", h.CreateTransfer)
 	})
 

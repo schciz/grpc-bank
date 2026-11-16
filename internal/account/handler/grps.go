@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"time"
 
 	"grpc-bank/internal/account/domain"
 	"grpc-bank/internal/account/service"
@@ -28,7 +29,6 @@ func (h *AccountHandler) GetAccount(ctx context.Context, req *accountpb.GetAccou
 	}
 
 	acc, err := h.svc.GetAccount(ctx, req.AccountId)
-
 	if err != nil {
 		if errors.Is(err, domain.ErrAccountNotFound) {
 			return nil, status.Error(codes.NotFound, "account not found")
@@ -43,7 +43,6 @@ func (h *AccountHandler) GetAccount(ctx context.Context, req *accountpb.GetAccou
 		Balance:       acc.Balance.String(),
 		Currency:      acc.Currency,
 	}, nil
-
 }
 
 func (h *AccountHandler) CreateAccount(ctx context.Context, req *accountpb.CreateAccountRequest) (*accountpb.CreateAccountResponse, error) {
@@ -96,7 +95,6 @@ func (h *AccountHandler) ExecuteTransfer(ctx context.Context, req *accountpb.Exe
 }
 
 func (h *AccountHandler) Deposit(ctx context.Context, req *accountpb.DepositRequest) (*accountpb.DepositResponse, error) {
-
 	amount, err := decimal.NewFromString(req.GetAmount())
 	if err != nil || amount.LessThanOrEqual(decimal.Zero) {
 		return nil, status.Error(codes.InvalidArgument, "Incorrect top-up amount")
@@ -114,4 +112,63 @@ func (h *AccountHandler) Deposit(ctx context.Context, req *accountpb.DepositRequ
 		Status:       "SUCCESS",
 		BalanceAfter: newBalance.String(),
 	}, nil
+}
+
+func (h *AccountHandler) IssueCard(ctx context.Context, req *accountpb.IssueCardRequest) (*accountpb.IssueCardResponse, error) {
+	if req.GetAccountId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "account_id is required")
+	}
+	card, err := h.svc.IssueCard(ctx, req.GetAccountId())
+	if err != nil {
+		if errors.Is(err, domain.ErrAccountNotFound) {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Errorf(codes.Internal, "issue card error: %v", err)
+	}
+	return &accountpb.IssueCardResponse{Card: toProtoCard(card)}, nil
+}
+
+func (h *AccountHandler) GetCards(ctx context.Context, req *accountpb.GetCardsRequest) (*accountpb.GetCardsResponse, error) {
+	if req.GetAccountId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "account_id is required")
+	}
+	cards, err := h.svc.GetCards(ctx, req.GetAccountId())
+	if err != nil {
+		if errors.Is(err, domain.ErrAccountNotFound) {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Errorf(codes.Internal, "get cards error: %v", err)
+	}
+	out := make([]*accountpb.Card, 0, len(cards))
+	for _, c := range cards {
+		out = append(out, toProtoCard(c))
+	}
+	return &accountpb.GetCardsResponse{Cards: out}, nil
+}
+
+func (h *AccountHandler) BlockCard(ctx context.Context, req *accountpb.BlockCardRequest) (*accountpb.BlockCardResponse, error) {
+	if req.GetCardId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "card_id is required")
+	}
+	card, err := h.svc.BlockCard(ctx, req.GetCardId())
+	if err != nil {
+		if errors.Is(err, domain.ErrCardNotFound) {
+			return nil, status.Error(codes.NotFound, "card not found")
+		}
+		return nil, status.Errorf(codes.Internal, "block card error: %v", err)
+	}
+	return &accountpb.BlockCardResponse{Card: toProtoCard(card)}, nil
+}
+
+func toProtoCard(c *domain.Card) *accountpb.Card {
+	if c == nil {
+		return nil
+	}
+	return &accountpb.Card{
+		Id:        c.ID,
+		AccountId: c.AccountID,
+		PanMask:   c.PanMask,
+		Status:    c.Status,
+		CreatedAt: c.CreatedAt.Format(time.RFC3339),
+	}
 }

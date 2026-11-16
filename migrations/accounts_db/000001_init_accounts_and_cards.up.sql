@@ -15,11 +15,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_user_currency_unique ON accounts(user_id, 
 
 CREATE TABLE IF NOT EXISTS cards (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    account_id UUID NOT NULL,
-    card_number VARCHAR(16) NOT NULL UNIQUE,
+    account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    pan_mask VARCHAR(19) NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_cards_account FOREIGN KEY (account_id)
-        REFERENCES accounts(id) ON DELETE CASCADE
+    CONSTRAINT chk_cards_status CHECK (status IN ('ACTIVE', 'BLOCKED'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_cards_account_id ON cards(account_id);

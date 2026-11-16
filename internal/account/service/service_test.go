@@ -33,6 +33,10 @@ type fakeAccountRepository struct {
 	depositID      string
 	depositAmount  decimal.Decimal
 	depositCalls   int
+
+	createCardFn func(*domain.Card) error
+	getCardsFn   func(string) ([]*domain.Card, error)
+	blockCardFn  func(string) (*domain.Card, error)
 }
 
 func (f *fakeAccountRepository) GetbyID(_ context.Context, id string) (*domain.Account, error) {
@@ -63,6 +67,28 @@ func (f *fakeAccountRepository) Deposit(_ context.Context, accountID string, amo
 	f.depositID = accountID
 	f.depositAmount = amount
 	return f.depositBalance, f.depositErr
+}
+
+func (f *fakeAccountRepository) CreateCard(_ context.Context, card *domain.Card) error {
+	if f.createCardFn != nil {
+		return f.createCardFn(card)
+	}
+	card.ID = "card-1"
+	return nil
+}
+
+func (f *fakeAccountRepository) GetCardsByAccountID(_ context.Context, accountID string) ([]*domain.Card, error) {
+	if f.getCardsFn != nil {
+		return f.getCardsFn(accountID)
+	}
+	return nil, nil
+}
+
+func (f *fakeAccountRepository) BlockCard(_ context.Context, cardID string) (*domain.Card, error) {
+	if f.blockCardFn != nil {
+		return f.blockCardFn(cardID)
+	}
+	return &domain.Card{ID: cardID, Status: domain.CardStatusBlocked}, nil
 }
 
 func TestAccountServiceGetAccount(t *testing.T) {

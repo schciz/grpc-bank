@@ -66,7 +66,6 @@ func (r *AccountRepository) Create(ctx context.Context, acc *domain.Account) err
 	return nil
 }
 
-
 func (r *AccountRepository) Transfer(ctx context.Context, fromID, toID string, amount decimal.Decimal) (decimal.Decimal, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -112,7 +111,6 @@ func (r *AccountRepository) Transfer(ctx context.Context, fromID, toID string, a
 
 	newFromBalance := fromBalance.Sub(amount)
 	_, err = tx.Exec(ctx, `UPDATE accounts SET balance = balance - $1 WHERE id = $2;`, amount, fromID)
-
 	if err != nil {
 		return decimal.Zero, fmt.Errorf("write-off error: %w", err)
 	}
@@ -138,7 +136,7 @@ func (r *AccountRepository) Deposit(ctx context.Context, accountID string, amoun
 		UPDATE accounts
 		SET balance = balance + $1
 		WHERE id = $2
-		RETURNING 	balance;
+		RETURNING balance;
 	`
 
 	var newBalance decimal.Decimal
@@ -151,4 +149,65 @@ func (r *AccountRepository) Deposit(ctx context.Context, accountID string, amoun
 	}
 
 	return newBalance, nil
+}
+
+func (r *AccountRepository) CreateCard(ctx context.Context, card *domain.Card) error {
+	query := `
+		INSERT INTO cards (account_id, pan_mask, status)
+		VALUES ($1, $2, $3)
+		RETURNING id, created_at;
+	`
+	if card.Status == "" {
+		card.Status = domain.CardStatusActive
+	}
+	err := r.pool.QueryRow(ctx, query, card.AccountID, card.PanMask, card.Status).Scan(&card.ID, &card.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("card insert error: %w", err)
+	}
+	return nil
+}
+
+func (r *AccountRepository) GetCardsByAccountID(ctx context.Context, accountID string) ([]*domain.Card, error) {
+	query := `
+		SELECT id, account_id, pan_mask, status, created_at
+		FROM cards
+		WHERE account_id = $1
+		ORDER BY created_at ASC, id ASC;
+	`
+	rows, err := r.pool.Query(ctx, query, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("cards query error: %w", err)
+	}
+	defer rows.Close()
+
+	cards := make([]*domain.Card, 0)
+	for rows.Next() {
+		var c domain.Card
+		if err := rows.Scan(&c.ID, &c.AccountID, &c.PanMask, &c.Status, &c.CreatedAt); err != nil {
+			return nil, fmt.Errorf("card scan error: %w", err)
+		}
+		cards = append(cards, &c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("cards rows error: %w", err)
+	}
+	return cards, nil
+}
+
+func (r *AccountRepository) BlockCard(ctx context.Context, cardID string) (*domain.Card, error) {
+	query := `
+		UPDATE cards
+		SET status = $2
+		WHERE id = $1
+		RETURNING id, account_id, pan_mask, status, created_at;
+	`
+	var c domain.Card
+	err := r.pool.QueryRow(ctx, query, cardID, domain.CardStatusBlocked).Scan(&c.ID, &c.AccountID, &c.PanMask, &c.Status, &c.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrCardNotFound
+		}
+		return nil, fmt.Errorf("block card error: %w", err)
+	}
+	return &c, nil
 }

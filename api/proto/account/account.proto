@@ -9,6 +9,9 @@ service AccountService {
   rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
   rpc ExecuteTransfer(ExecuteTransferRequest) returns (ExecuteTransferResponse);
   rpc Deposit(DepositRequest) returns (DepositResponse);
+  rpc IssueCard(IssueCardRequest) returns (IssueCardResponse);
+  rpc GetCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc BlockCard(BlockCardRequest) returns (BlockCardResponse);
 }
 
 message GetAccountRequest {
@@ -52,4 +55,36 @@ message DepositRequest {
 message DepositResponse {
   string status = 1;
   string balance_after = 2;
+}
+
+message Card {
+  string id = 1;
+  string account_id = 2;
+  string pan_mask = 3;
+  string status = 4;
+  string created_at = 5;
+}
+
+message IssueCardRequest {
+  string account_id = 1;
+}
+
+message IssueCardResponse {
+  Card card = 1;
+}
+
+message GetCardsRequest {
+  string account_id = 1;
+}
+
+message GetCardsResponse {
+  repeated Card cards = 1;
+}
+
+message BlockCardRequest {
+  string card_id = 1;
+}
+
+message BlockCardResponse {
+  Card card = 1;
 }

@@ -88,6 +88,18 @@ func (f *fakeAccountClient) Deposit(context.Context, *accountpb.DepositRequest, 
 	return nil, errors.New("unexpected Deposit call")
 }
 
+func (f *fakeAccountClient) IssueCard(context.Context, *accountpb.IssueCardRequest, ...grpc.CallOption) (*accountpb.IssueCardResponse, error) {
+	return nil, errors.New("unexpected IssueCard call")
+}
+
+func (f *fakeAccountClient) GetCards(context.Context, *accountpb.GetCardsRequest, ...grpc.CallOption) (*accountpb.GetCardsResponse, error) {
+	return nil, errors.New("unexpected GetCards call")
+}
+
+func (f *fakeAccountClient) BlockCard(context.Context, *accountpb.BlockCardRequest, ...grpc.CallOption) (*accountpb.BlockCardResponse, error) {
+	return nil, errors.New("unexpected BlockCard call")
+}
+
 func TestPaymentServiceProcessPaymentValidation(t *testing.T) {
 	amount := decimal.NewFromInt(10)
 

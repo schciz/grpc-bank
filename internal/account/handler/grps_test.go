@@ -19,6 +19,9 @@ type fakeAccountRepository struct {
 	createFn   func(context.Context, *domain.Account) error
 	transferFn func(context.Context, string, string, decimal.Decimal) (decimal.Decimal, error)
 	depositFn  func(context.Context, string, decimal.Decimal) (decimal.Decimal, error)
+	createCardFn func(context.Context, *domain.Card) error
+	getCardsFn   func(context.Context, string) ([]*domain.Card, error)
+	blockCardFn  func(context.Context, string) (*domain.Card, error)
 }
 
 func (f *fakeAccountRepository) GetbyID(ctx context.Context, id string) (*domain.Account, error) {
@@ -47,6 +50,27 @@ func (f *fakeAccountRepository) Deposit(ctx context.Context, accountID string, a
 		return f.depositFn(ctx, accountID, amount)
 	}
 	return decimal.Zero, nil
+}
+
+func (f *fakeAccountRepository) CreateCard(ctx context.Context, card *domain.Card) error {
+	if f.createCardFn != nil {
+		return f.createCardFn(ctx, card)
+	}
+	return nil
+}
+
+func (f *fakeAccountRepository) GetCardsByAccountID(ctx context.Context, accountID string) ([]*domain.Card, error) {
+	if f.getCardsFn != nil {
+		return f.getCardsFn(ctx, accountID)
+	}
+	return nil, nil
+}
+
+func (f *fakeAccountRepository) BlockCard(ctx context.Context, cardID string) (*domain.Card, error) {
+	if f.blockCardFn != nil {
+		return f.blockCardFn(ctx, cardID)
+	}
+	return &domain.Card{ID: cardID, Status: domain.CardStatusBlocked}, nil
 }
 
 func newAccountHandler(repo *fakeAccountRepository) *AccountHandler {

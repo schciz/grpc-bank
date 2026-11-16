@@ -30,6 +30,13 @@ type fakeAccountClient struct {
 
 	transferResp *accountpb.ExecuteTransferResponse
 	transferErr  error
+
+	issueCardResp *accountpb.IssueCardResponse
+	issueCardErr  error
+	getCardsResp  *accountpb.GetCardsResponse
+	getCardsErr   error
+	blockCardResp *accountpb.BlockCardResponse
+	blockCardErr  error
 }
 
 func (f *fakeAccountClient) CreateAccount(context.Context, *accountpb.CreateAccountRequest, ...grpc.CallOption) (*accountpb.CreateAccountResponse, error) {
@@ -46,6 +53,18 @@ func (f *fakeAccountClient) ExecuteTransfer(context.Context, *accountpb.ExecuteT
 
 func (f *fakeAccountClient) Deposit(context.Context, *accountpb.DepositRequest, ...grpc.CallOption) (*accountpb.DepositResponse, error) {
 	return f.depositResp, f.depositErr
+}
+
+func (f *fakeAccountClient) IssueCard(context.Context, *accountpb.IssueCardRequest, ...grpc.CallOption) (*accountpb.IssueCardResponse, error) {
+	return f.issueCardResp, f.issueCardErr
+}
+
+func (f *fakeAccountClient) GetCards(context.Context, *accountpb.GetCardsRequest, ...grpc.CallOption) (*accountpb.GetCardsResponse, error) {
+	return f.getCardsResp, f.getCardsErr
+}
+
+func (f *fakeAccountClient) BlockCard(context.Context, *accountpb.BlockCardRequest, ...grpc.CallOption) (*accountpb.BlockCardResponse, error) {
+	return f.blockCardResp, f.blockCardErr
 }
 
 type fakePaymentClient struct {
