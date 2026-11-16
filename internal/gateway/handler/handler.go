@@ -1,39 +1,65 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+
+	"grpc-bank/internal/gateway/auth"
 	auditservice "grpc-bank/internal/audit/service"
 	accountpb "grpc-bank/pkg/api/account"
 	paymentpb "grpc-bank/pkg/api/payment"
 	reportpb "grpc-bank/pkg/api/report"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+type Authenticator interface {
+	Authenticate(ctx context.Context, login, password string) (string, *auth.User, error)
+	ParseToken(tokenStr string) (*auth.Claims, error)
+}
+
 type GatewayHandler struct {
 	accountClient  accountpb.AccountServiceClient
 	paymentClient  paymentpb.PaymentServiceClient
 	reportClient   reportpb.ReportServiceClient
 	auditPublisher auditservice.Publisher
+	authService    Authenticator
 }
 
 func NewGatewayHandler(accountClient accountpb.AccountServiceClient, paymentClient paymentpb.PaymentServiceClient, reportClient reportpb.ReportServiceClient) *GatewayHandler {
+	return NewGatewayHandlerWithDeps(accountClient, paymentClient, reportClient, auditservice.NewAsyncPublisher(&auditservice.MockPublisher{}), nil)
+}
+
+func NewGatewayHandlerWithAudit(accountClient accountpb.AccountServiceClient, paymentClient paymentpb.PaymentServiceClient, reportClient reportpb.ReportServiceClient, auditPublisher auditservice.Publisher) *GatewayHandler {
+	return NewGatewayHandlerWithDeps(accountClient, paymentClient, reportClient, auditPublisher, nil)
+}
+
+func NewGatewayHandlerWithDeps(accountClient accountpb.AccountServiceClient, paymentClient paymentpb.PaymentServiceClient, reportClient reportpb.ReportServiceClient, auditPublisher auditservice.Publisher, authService Authenticator) *GatewayHandler {
+	if auditPublisher == nil {
+		auditPublisher = auditservice.NewAsyncPublisher(&auditservice.MockPublisher{})
+	}
 	return &GatewayHandler{
 		accountClient:  accountClient,
 		paymentClient:  paymentClient,
 		reportClient:   reportClient,
-		auditPublisher: auditservice.NewAsyncPublisher(&auditservice.MockPublisher{}),
+		auditPublisher: auditPublisher,
+		authService:    authService,
 	}
 }
 
 func (h *GatewayHandler) publishAudit(r *http.Request, userID, action string, payload string) {
 	if h == nil || h.auditPublisher == nil {
 		return
+	}
+	if userID == "" {
+		if claims := auth.UserFromContext(r.Context()); claims != nil {
+			userID = claims.UserID
+		}
 	}
 	ip := r.RemoteAddr
 	h.auditPublisher.Publish(r.Context(), userID, action, ip, payload)
@@ -45,14 +71,37 @@ func (h *GatewayHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(req.Login) == "" || strings.TrimSpace(req.Password) == "" {
+	login := strings.TrimSpace(req.Login)
+	if login == "" || strings.TrimSpace(req.Password) == "" {
 		h.publishAudit(r, "", "LOGIN_FAILED", `{"reason":"missing_credentials"}`)
 		http.Error(w, "login and password are required", http.StatusBadRequest)
 		return
 	}
-	// Mocked authentication/integration: no external IdP, issue deterministic demo JWT-like token.
-	token := "mock-jwt-" + strings.ReplaceAll(req.Login, " ", "_") + "-" + time.Now().UTC().Format("20060102150405")
-	h.publishAudit(r, req.Login, "LOGIN_SUCCESS", `{"login":"`+strings.ReplaceAll(req.Login, `"`, "")+`"}`)
+	if h.authService == nil {
+		h.publishAudit(r, login, "LOGIN_FAILED", `{"reason":"auth_not_configured"}`)
+		http.Error(w, "authentication is not configured", http.StatusInternalServerError)
+		return
+	}
+	token, user, err := h.authService.Authenticate(r.Context(), login, req.Password)
+	if err != nil {
+		reason := "invalid_credentials"
+		if errors.Is(err, auth.ErrUserInactive) {
+			reason = "user_inactive"
+		}
+		h.publishAudit(r, login, "LOGIN_FAILED", `{"reason":"`+reason+`"}`)
+		if errors.Is(err, auth.ErrUserInactive) {
+			http.Error(w, "user is inactive", http.StatusForbidden)
+			return
+		}
+		http.Error(w, "invalid login or password", http.StatusUnauthorized)
+		return
+	}
+	userID := login
+	if user != nil && user.ID != "" {
+		userID = user.ID
+	}
+	h.publishAudit(r, userID, "LOGIN_SUCCESS", `{"login":"`+strings.ReplaceAll(login, `"`, "")+`"}`)
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(LoginResponse{Token: token, TokenType: "Bearer", ExpiresIn: 3600})
 }
 

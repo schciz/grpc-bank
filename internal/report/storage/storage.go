@@ -6,10 +6,9 @@ import (
 	"time"
 )
 
-// ObjectStorage is an integration point with external S3-compatible storage.
-// MockStorage is used by default.
+// ObjectStorage is an integration point with S3-compatible storage.
 type ObjectStorage interface {
-	StoreStatement(ctx context.Context, accountID, startDate, endDate, format string, content []byte) (url string, err error)
+	StoreStatement(ctx context.Context, accountID, startDate, endDate, format string, content []byte) (url string, storage string, err error)
 }
 
 type MockStorage struct {
@@ -22,7 +21,7 @@ func NewMockStorage() *MockStorage {
 	return &MockStorage{BaseURL: "https://mock-storage.local", TTL: 24 * time.Hour, Objects: make(map[string][]byte)}
 }
 
-func (m *MockStorage) StoreStatement(_ context.Context, accountID, startDate, endDate, format string, content []byte) (string, error) {
+func (m *MockStorage) StoreStatement(_ context.Context, accountID, startDate, endDate, format string, content []byte) (string, string, error) {
 	if format == "" {
 		format = "xlsx"
 	}
@@ -30,5 +29,5 @@ func (m *MockStorage) StoreStatement(_ context.Context, accountID, startDate, en
 	if m.Objects != nil {
 		m.Objects[key] = append([]byte(nil), content...)
 	}
-	return m.BaseURL + "/" + key, nil
+	return m.BaseURL + "/" + key, "mock-s3", nil
 }

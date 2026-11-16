@@ -41,8 +41,19 @@ func main() {
 	defer pool.Close()
 
 	repo := repository.NewReportRepository(pool)
-	// External S3/MinIO storage integration is mocked.
-	svc := service.NewReportService(repo, storage.NewMockStorage())
+	st, err := storage.NewS3Storage(ctx, storage.S3Config{
+		Endpoint:  cfg.S3Endpoint,
+		Bucket:    cfg.S3Bucket,
+		AccessKey: cfg.S3AccessKey,
+		SecretKey: cfg.S3SecretKey,
+		UseSSL:    cfg.S3UseSSL,
+		Region:    cfg.S3Region,
+		PublicURL: cfg.S3PublicBaseURL,
+	})
+	if err != nil {
+		log.Fatalf("s3 storage init error: %v", err)
+	}
+	svc := service.NewReportService(repo, st)
 	h := handler.NewReportHandler(svc)
 
 	grpcServer := grpc.NewServer()

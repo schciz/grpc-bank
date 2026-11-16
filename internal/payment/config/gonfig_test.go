@@ -21,6 +21,9 @@ func TestLoad(t *testing.T) {
 		t.Setenv("PAYMENT_SERVICE_GRPC_PORT", "60052")
 		t.Setenv("PAYMENT_SERVICE_DB_URL", "")
 		t.Setenv("ACCOUNT_SERVICE_ADDR", "account:60051")
+		t.Setenv("AUDIT_SERVICE_ADDR", "audit:60054")
+		t.Setenv("KAFKA_BROKERS", "kafka:9092")
+		t.Setenv("KAFKA_TRANSFER_TOPIC", "banking.transfers.v1")
 
 		cfg, err := Load()
 		if err != nil {
@@ -36,6 +39,12 @@ func TestLoad(t *testing.T) {
 		if cfg.AccountServiceAddr != "account:60051" {
 			t.Fatalf("unexpected account service address %q", cfg.AccountServiceAddr)
 		}
+		if cfg.AuditServiceAddr != "audit:60054" {
+			t.Fatalf("unexpected audit service address %q", cfg.AuditServiceAddr)
+		}
+		if cfg.KafkaBrokers != "kafka:9092" || cfg.KafkaTransferTopic != "banking.transfers.v1" {
+			t.Fatalf("unexpected kafka config: %#v", cfg)
+		}
 	})
 
 	t.Run("explicit url wins", func(t *testing.T) {
@@ -43,6 +52,9 @@ func TestLoad(t *testing.T) {
 		t.Setenv("PAYMENT_SERVICE_GRPC_PORT", "60052")
 		t.Setenv("PAYMENT_SERVICE_DB_URL", "postgres://user:pass@db:5432/custom")
 		t.Setenv("ACCOUNT_SERVICE_ADDR", "account:60051")
+		t.Setenv("AUDIT_SERVICE_ADDR", "audit:60054")
+		t.Setenv("KAFKA_BROKERS", "kafka:9092")
+		t.Setenv("KAFKA_TRANSFER_TOPIC", "banking.transfers.v1")
 
 		cfg, err := Load()
 		if err != nil {
@@ -57,13 +69,16 @@ func TestLoad(t *testing.T) {
 		setPostgres(t)
 		t.Setenv("PAYMENT_SERVICE_GRPC_PORT", "60052")
 		t.Setenv("PAYMENT_SERVICE_DB_URL", "")
-		t.Setenv("ACCOUNT_SERVICE_ADDR", "")
+		t.Setenv("ACCOUNT_SERVICE_ADDR", "account:60051")
+		t.Setenv("AUDIT_SERVICE_ADDR", "audit:60054")
+		t.Setenv("KAFKA_BROKERS", "")
+		t.Setenv("KAFKA_TRANSFER_TOPIC", "banking.transfers.v1")
 
 		_, err := Load()
 		if err == nil {
 			t.Fatal("expected an error")
 		}
-		if !strings.Contains(err.Error(), "ACCOUNT_SERVICE_ADDR") {
+		if !strings.Contains(err.Error(), "KAFKA_BROKERS") {
 			t.Fatalf("error %q does not name the missing variable", err)
 		}
 	})

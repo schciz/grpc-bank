@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/csv"
 	"fmt"
 	"strings"
 	"time"
@@ -61,12 +60,11 @@ func (s *ReportService) GenerateReport(ctx context.Context, accountID, startDate
 		return nil, err
 	}
 
-	// Mocked export generation: build simple CSV-like bytes and store via mocked S3 storage.
-	content, err := buildStatementContent(accountID, startDate, endDate, txs)
+	content, err := buildStatementContent(accountID, startDate, endDate, format, txs)
 	if err != nil {
 		return nil, err
 	}
-	url, err := s.storage.StoreStatement(ctx, accountID, startDate, endDate, format, content)
+	url, storageName, err := s.storage.StoreStatement(ctx, accountID, startDate, endDate, format, content)
 	if err != nil {
 		return nil, fmt.Errorf("store statement: %w", err)
 	}
@@ -77,28 +75,7 @@ func (s *ReportService) GenerateReport(ctx context.Context, accountID, startDate
 		EndDate:     endDate,
 		Format:      format,
 		DownloadURL: url,
-		Storage:     "mock-s3",
+		Storage:     storageName,
 		ExpiresIn:   "24h",
 	}, nil
-}
-
-func buildStatementContent(accountID, startDate, endDate string, txs []domain.StatementTransaction) ([]byte, error) {
-	var b strings.Builder
-	b.WriteString("statement for account ")
-	b.WriteString(accountID)
-	b.WriteString(" ")
-	b.WriteString(startDate)
-	b.WriteString("..")
-	b.WriteString(endDate)
-	b.WriteString("\n")
-	w := csv.NewWriter(&b)
-	_ = w.Write([]string{"created_at", "id", "from_account_id", "to_account_id", "amount", "status"})
-	for _, t := range txs {
-		_ = w.Write([]string{t.CreatedAt.UTC().Format(time.RFC3339), t.ID, t.FromAccountID, t.ToAccountID, t.Amount, t.Status})
-	}
-	w.Flush()
-	if err := w.Error(); err != nil {
-		return nil, err
-	}
-	return []byte(b.String()), nil
 }

@@ -49,19 +49,21 @@ type PaymentService struct {
 }
 
 func NewPaymentService(repo PaymentRepository, accountClient accountpb.AccountServiceClient) *PaymentService {
-	return &PaymentService{
-		repo:           repo,
-		accountClient:  accountClient,
-		publisher:      &MockTransferEventPublisher{},
-		auditPublisher: auditservice.NewAsyncPublisher(&auditservice.MockPublisher{}),
-	}
+	return NewPaymentServiceWithDeps(repo, accountClient, &MockTransferEventPublisher{}, auditservice.NewAsyncPublisher(&auditservice.MockPublisher{}))
 }
 
 func NewPaymentServiceWithPublisher(repo PaymentRepository, accountClient accountpb.AccountServiceClient, publisher TransferEventPublisher) *PaymentService {
+	return NewPaymentServiceWithDeps(repo, accountClient, publisher, auditservice.NewAsyncPublisher(&auditservice.MockPublisher{}))
+}
+
+func NewPaymentServiceWithDeps(repo PaymentRepository, accountClient accountpb.AccountServiceClient, publisher TransferEventPublisher, auditPublisher auditservice.Publisher) *PaymentService {
 	if publisher == nil {
 		publisher = &MockTransferEventPublisher{}
 	}
-	return &PaymentService{repo: repo, accountClient: accountClient, publisher: publisher, auditPublisher: auditservice.NewAsyncPublisher(&auditservice.MockPublisher{})}
+	if auditPublisher == nil {
+		auditPublisher = auditservice.NewAsyncPublisher(&auditservice.MockPublisher{})
+	}
+	return &PaymentService{repo: repo, accountClient: accountClient, publisher: publisher, auditPublisher: auditPublisher}
 }
 
 func (s *PaymentService) ProcessPayment(

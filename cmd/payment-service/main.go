@@ -7,13 +7,17 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	auditpublisher "grpc-bank/internal/audit/publisher"
+	auditservice "grpc-bank/internal/audit/service"
 	"grpc-bank/internal/payment/config"
 	"grpc-bank/internal/payment/handler"
 	"grpc-bank/internal/payment/repository"
 	"grpc-bank/internal/payment/service"
 	accountpb "grpc-bank/pkg/api/account"
+	auditpb "grpc-bank/pkg/api/audit"
 	paymentpb "grpc-bank/pkg/api/payment"
 	"grpc-bank/pkg/env"
 	"grpc-bank/pkg/postgres"
@@ -22,6 +26,18 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
+
+func splitCSV(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
 
 func main() {
 	if err := env.Load(env.File()); err != nil {
@@ -58,8 +74,24 @@ func main() {
 
 	accountClient := accountpb.NewAccountServiceClient(accountConn)
 
+	auditConn, err := grpc.NewClient(
+		cfg.AuditServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalf("audit service client connection error: %v", err)
+	}
+	defer func() {
+		if err := auditConn.Close(); err != nil {
+			log.Printf("error closing audit service connection: %v", err)
+		}
+	}()
+
+	transferPublisher := service.NewKafkaPublisher(splitCSV(cfg.KafkaBrokers), cfg.KafkaTransferTopic)
+	defer func() { _ = transferPublisher.Close() }()
+
 	paymentRepo := repository.NewPaymentRepository(dbPool)
-	paymentService := service.NewPaymentService(paymentRepo, accountClient)
+	paymentService := service.NewPaymentServiceWithDeps(paymentRepo, accountClient, transferPublisher, auditservice.NewAsyncPublisher(auditpublisher.NewGRPCPublisher(auditpb.NewAuditServiceClient(auditConn))))
 	paymentHandler := handler.NewPaymentHandler(paymentService)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GRPCPort))

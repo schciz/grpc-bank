@@ -10,12 +10,17 @@ import (
 	"syscall"
 	"time"
 
+	auditpublisher "grpc-bank/internal/audit/publisher"
+	auditservice "grpc-bank/internal/audit/service"
+	"grpc-bank/internal/gateway/auth"
 	"grpc-bank/internal/gateway/config"
 	"grpc-bank/internal/gateway/handler"
 	accountpb "grpc-bank/pkg/api/account"
+	auditpb "grpc-bank/pkg/api/audit"
 	paymentpb "grpc-bank/pkg/api/payment"
 	reportpb "grpc-bank/pkg/api/report"
 	"grpc-bank/pkg/env"
+	"grpc-bank/pkg/postgres"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -30,6 +35,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("config load error: %v", err)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dbPool, err := postgres.NewPGXPool(ctx, cfg.DBURL)
+	if err != nil {
+		log.Fatalf("postgres connect error: %v", err)
+	}
+	defer dbPool.Close()
+
+	authSvc := auth.NewService(dbPool, cfg.JWTSecret, cfg.JWTTTL)
 
 	accConn, err := grpc.NewClient(cfg.AccountServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -52,8 +68,15 @@ func main() {
 	defer func() { _ = repConn.Close() }()
 	reportClient := reportpb.NewReportServiceClient(repConn)
 
-	h := handler.NewGatewayHandler(accClient, payClient, reportClient)
-	r := handler.NewRouter(h)
+	auditConn, err := grpc.NewClient(cfg.AuditServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to connect to audit service: %v", err)
+	}
+	defer func() { _ = auditConn.Close() }()
+	auditClient := auditpb.NewAuditServiceClient(auditConn)
+
+	h := handler.NewGatewayHandlerWithDeps(accClient, payClient, reportClient, auditservice.NewAsyncPublisher(auditpublisher.NewGRPCPublisher(auditClient)), authSvc)
+	r := handler.NewRouterWithAuth(h, authSvc)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.HTTPPort),
