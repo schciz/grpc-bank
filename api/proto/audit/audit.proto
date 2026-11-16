@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package audit;
+
+option go_package = "grpc-bank/pkg/api/audit;auditpb";
+
+service AuditService {
+  rpc LogEvent(LogEventRequest) returns (LogEventResponse);
+}
+
+message LogEventRequest {
+  string user_id = 1;
+  string action = 2;
+  string ip_address = 3;
+  string payload_json = 4;
+}
+
+message LogEventResponse {
+  int64 id = 1;
+  string status = 2;
+}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	auditservice "grpc-bank/internal/audit/service"
 	accountpb "grpc-bank/pkg/api/account"
 	paymentpb "grpc-bank/pkg/api/payment"
 	reportpb "grpc-bank/pkg/api/report"
@@ -15,17 +16,27 @@ import (
 )
 
 type GatewayHandler struct {
-	accountClient accountpb.AccountServiceClient
-	paymentClient paymentpb.PaymentServiceClient
-	reportClient  reportpb.ReportServiceClient
+	accountClient  accountpb.AccountServiceClient
+	paymentClient  paymentpb.PaymentServiceClient
+	reportClient   reportpb.ReportServiceClient
+	auditPublisher auditservice.Publisher
 }
 
 func NewGatewayHandler(accountClient accountpb.AccountServiceClient, paymentClient paymentpb.PaymentServiceClient, reportClient reportpb.ReportServiceClient) *GatewayHandler {
 	return &GatewayHandler{
-		accountClient: accountClient,
-		paymentClient: paymentClient,
-		reportClient:  reportClient,
+		accountClient:  accountClient,
+		paymentClient:  paymentClient,
+		reportClient:   reportClient,
+		auditPublisher: auditservice.NewAsyncPublisher(&auditservice.MockPublisher{}),
 	}
+}
+
+func (h *GatewayHandler) publishAudit(r *http.Request, userID, action string, payload string) {
+	if h == nil || h.auditPublisher == nil {
+		return
+	}
+	ip := r.RemoteAddr
+	h.auditPublisher.Publish(r.Context(), userID, action, ip, payload)
 }
 
 func (h *GatewayHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -35,11 +46,13 @@ func (h *GatewayHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.TrimSpace(req.Login) == "" || strings.TrimSpace(req.Password) == "" {
+		h.publishAudit(r, "", "LOGIN_FAILED", `{"reason":"missing_credentials"}`)
 		http.Error(w, "login and password are required", http.StatusBadRequest)
 		return
 	}
 	// Mocked authentication/integration: no external IdP, issue deterministic demo JWT-like token.
 	token := "mock-jwt-" + strings.ReplaceAll(req.Login, " ", "_") + "-" + time.Now().UTC().Format("20060102150405")
+	h.publishAudit(r, req.Login, "LOGIN_SUCCESS", `{"login":"`+strings.ReplaceAll(req.Login, `"`, "")+`"}`)
 	_ = json.NewEncoder(w).Encode(LoginResponse{Token: token, TokenType: "Bearer", ExpiresIn: 3600})
 }
 
@@ -127,7 +140,9 @@ func (h *GatewayHandler) IssueCard(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(toCardResponse(grpcResp.GetCard()))
+	card := toCardResponse(grpcResp.GetCard())
+	h.publishAudit(r, "", "CARD_ISSUED", `{"card_id":"`+card.ID+`","account_id":"`+card.AccountID+`","pan_mask":"`+card.PanMask+`"}`)
+	_ = json.NewEncoder(w).Encode(card)
 }
 
 func (h *GatewayHandler) GetCards(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +176,9 @@ func (h *GatewayHandler) BlockCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(toCardResponse(grpcResp.GetCard()))
+	card := toCardResponse(grpcResp.GetCard())
+	h.publishAudit(r, "", "CARD_BLOCKED", `{"card_id":"`+card.ID+`","account_id":"`+card.AccountID+`"}`)
+	_ = json.NewEncoder(w).Encode(card)
 }
 
 func (h *GatewayHandler) GetStatement(w http.ResponseWriter, r *http.Request) {

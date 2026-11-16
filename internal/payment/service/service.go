@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"grpc-bank/internal/payment/domain"
+	auditservice "grpc-bank/internal/audit/service"
 	accountpb "grpc-bank/pkg/api/account"
 
 	"github.com/shopspring/decimal"
@@ -40,16 +42,18 @@ func (m *MockTransferEventPublisher) PublishTransferCompleted(_ context.Context,
 }
 
 type PaymentService struct {
-	repo          PaymentRepository
-	accountClient accountpb.AccountServiceClient
-	publisher     TransferEventPublisher
+	repo           PaymentRepository
+	accountClient  accountpb.AccountServiceClient
+	publisher      TransferEventPublisher
+	auditPublisher auditservice.Publisher
 }
 
 func NewPaymentService(repo PaymentRepository, accountClient accountpb.AccountServiceClient) *PaymentService {
 	return &PaymentService{
-		repo:          repo,
-		accountClient: accountClient,
-		publisher:     &MockTransferEventPublisher{},
+		repo:           repo,
+		accountClient:  accountClient,
+		publisher:      &MockTransferEventPublisher{},
+		auditPublisher: auditservice.NewAsyncPublisher(&auditservice.MockPublisher{}),
 	}
 }
 
@@ -57,7 +61,7 @@ func NewPaymentServiceWithPublisher(repo PaymentRepository, accountClient accoun
 	if publisher == nil {
 		publisher = &MockTransferEventPublisher{}
 	}
-	return &PaymentService{repo: repo, accountClient: accountClient, publisher: publisher}
+	return &PaymentService{repo: repo, accountClient: accountClient, publisher: publisher, auditPublisher: auditservice.NewAsyncPublisher(&auditservice.MockPublisher{})}
 }
 
 func (s *PaymentService) ProcessPayment(
@@ -109,6 +113,7 @@ func (s *PaymentService) ProcessPayment(
 		}
 		return nil, fmt.Errorf("failed to register transaction: %w", err)
 	}
+	s.publishAudit(ctx, "", "TRANSFER_INITIATED", "", map[string]any{"idempotency_key": idempotencyKey, "from_account_id": fromAccountID, "to_account_id": toAccountID, "amount": amount.String()})
 
 	transferReq := &accountpb.ExecuteTransferRequest{
 		FromAccountId: fromAccountID,
@@ -137,6 +142,7 @@ func (s *PaymentService) ProcessPayment(
 		_ = s.repo.UpdateStatus(ctx, tx.ID, domain.StatusFailed, userErrMsg)
 		tx.Status = domain.StatusFailed
 		tx.ErrorMessage = userErrMsg
+		s.publishAudit(ctx, "", "TRANSFER_FAILED", "", map[string]any{"idempotency_key": idempotencyKey, "from_account_id": fromAccountID, "to_account_id": toAccountID, "amount": amount.String(), "error": userErrMsg})
 
 		return tx, errors.New(userErrMsg)
 	}
@@ -148,6 +154,27 @@ func (s *PaymentService) ProcessPayment(
 	tx.Status = domain.StatusSuccess
 	// Integration with external message bus/ABS is mocked.
 	_ = s.publisher.PublishTransferCompleted(ctx, tx)
+	s.publishAudit(ctx, "", "TRANSFER_SUCCESS", "", map[string]any{"idempotency_key": idempotencyKey, "from_account_id": fromAccountID, "to_account_id": toAccountID, "amount": amount.String(), "payment_id": tx.ID})
 	return tx, nil
+}
+
+func (s *PaymentService) publishAudit(ctx context.Context, userID, action, ip string, payload any) {
+	if s == nil || s.auditPublisher == nil {
+		return
+	}
+	var body string
+	switch v := payload.(type) {
+	case string:
+		body = v
+	default:
+		b, err := json.Marshal(v)
+		if err != nil {
+			body = "{}"
+		} else {
+			body = string(b)
+		}
+	}
+	// Async delivery to Audit Service transport is mocked.
+	s.auditPublisher.Publish(ctx, userID, action, ip, body)
 }
 

@@ -12,6 +12,7 @@ COMPOSE_FILE ?= deployments/docker-compose.yml
 # Пароль, хост и порт берутся из одного места, полный DSN можно задать явно.
 ACCOUNT_SERVICE_DB_URL ?= postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(ACCOUNTS_DB_NAME)?sslmode=$(POSTGRES_SSLMODE)
 PAYMENT_SERVICE_DB_URL ?= postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(PAYMENTS_DB_NAME)?sslmode=$(POSTGRES_SSLMODE)
+AUDIT_SERVICE_DB_URL ?= postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(AUDIT_DB_NAME)?sslmode=$(POSTGRES_SSLMODE)
 
 export
 
@@ -48,6 +49,7 @@ build:
 	$(GO) build -o bin/account-service ./cmd/account-service
 	$(GO) build -o bin/payment-service ./cmd/payment-service
 	$(GO) build -o bin/report-service ./cmd/report-service
+	$(GO) build -o bin/audit-service ./cmd/audit-service
 	$(GO) build -o bin/api-gateway ./cmd/api-gateway
 
 # 7. Очистка бинарников (proto НЕ ТРОГАЕТ)
@@ -71,8 +73,10 @@ clean-all: clean-bin clean-db
 migrate-up:
 	$(MIGRATE) -path migrations/accounts_db -database "$(ACCOUNT_SERVICE_DB_URL)" up
 	$(MIGRATE) -path migrations/payments_db -database "$(PAYMENT_SERVICE_DB_URL)" up
+	$(MIGRATE) -path migrations/audit_db -database "$(AUDIT_SERVICE_DB_URL)" up
 
 migrate-down:
+	$(MIGRATE) -path migrations/audit_db -database "$(AUDIT_SERVICE_DB_URL)" down -all
 	$(MIGRATE) -path migrations/payments_db -database "$(PAYMENT_SERVICE_DB_URL)" down -all
 	$(MIGRATE) -path migrations/accounts_db -database "$(ACCOUNT_SERVICE_DB_URL)" down -all
 
@@ -86,7 +90,8 @@ proto:
 	       --go-grpc_out=. --go-grpc_opt=module=grpc-bank \
 	       api/proto/account/account.proto \
 	       api/proto/payment/payment.proto \
-	       api/proto/report/report.proto
+	       api/proto/report/report.proto \
+	       api/proto/audit/audit.proto
 
 proto-clean:
 	rm -rf pkg/api/*
