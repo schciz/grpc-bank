@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	accountpb "grpc-bank/pkg/api/account"
 	paymentpb "grpc-bank/pkg/api/payment"
+	reportpb "grpc-bank/pkg/api/report"
 	"net/http"
 	"strings"
 	"time"
@@ -16,12 +17,14 @@ import (
 type GatewayHandler struct {
 	accountClient accountpb.AccountServiceClient
 	paymentClient paymentpb.PaymentServiceClient
+	reportClient  reportpb.ReportServiceClient
 }
 
-func NewGatewayHandler(accountClient accountpb.AccountServiceClient, paymentClient paymentpb.PaymentServiceClient) *GatewayHandler {
+func NewGatewayHandler(accountClient accountpb.AccountServiceClient, paymentClient paymentpb.PaymentServiceClient, reportClient reportpb.ReportServiceClient) *GatewayHandler {
 	return &GatewayHandler{
 		accountClient: accountClient,
 		paymentClient: paymentClient,
+		reportClient:  reportClient,
 	}
 }
 
@@ -173,14 +176,31 @@ func (h *GatewayHandler) GetStatement(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "start_date and end_date are required", http.StatusBadRequest)
 		return
 	}
-	// Mocked report generation/storage integration (no external Report Service/S3): return a deterministic mock URL.
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "xlsx"
+	}
+	if h.reportClient == nil {
+		http.Error(w, "report service is unavailable", http.StatusInternalServerError)
+		return
+	}
+	grpcResp, err := h.reportClient.GenerateReport(r.Context(), &reportpb.GenerateReportRequest{
+		AccountId: accountID,
+		StartDate: start,
+		EndDate:   end,
+		Format:    format,
+	})
+	if err != nil {
+		handleGRPCErr(w, err)
+		return
+	}
 	resp := StatementResponse{
-		AccountID:   accountID,
-		StartDate:   start,
-		EndDate:     end,
-		Format:      "xlsx",
-		Storage:     "mock-s3",
-		DownloadURL: "https://mock-storage.local/statements/" + accountID + "/" + start + "_" + end + ".xlsx",
+		AccountID:   grpcResp.GetAccountId(),
+		StartDate:   grpcResp.GetStartDate(),
+		EndDate:     grpcResp.GetEndDate(),
+		DownloadURL: grpcResp.GetDownloadUrl(),
+		Format:      grpcResp.GetFormat(),
+		Storage:     grpcResp.GetStorage(),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)

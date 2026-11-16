@@ -47,6 +47,7 @@ build:
 	@mkdir -p bin
 	$(GO) build -o bin/account-service ./cmd/account-service
 	$(GO) build -o bin/payment-service ./cmd/payment-service
+	$(GO) build -o bin/report-service ./cmd/report-service
 	$(GO) build -o bin/api-gateway ./cmd/api-gateway
 
 # 7. Очистка бинарников (proto НЕ ТРОГАЕТ)
@@ -84,7 +85,8 @@ proto:
 	       --go_out=. --go_opt=module=grpc-bank \
 	       --go-grpc_out=. --go-grpc_opt=module=grpc-bank \
 	       api/proto/account/account.proto \
-	       api/proto/payment/payment.proto
+	       api/proto/payment/payment.proto \
+	       api/proto/report/report.proto
 
 proto-clean:
 	rm -rf pkg/api/*

@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewRouter(t *testing.T) {
-	h, accountClient, paymentClient := newGatewayHandler()
+	h, accountClient, paymentClient, _ := newGatewayHandler()
 	accountClient.createResp = &accountpb.CreateAccountResponse{AccountId: "acc-1", AccountNumber: "40817810000000000001"}
 	accountClient.getResp = &accountpb.GetAccountResponse{AccountId: "acc-1"}
 	accountClient.depositResp = &accountpb.DepositResponse{Status: "SUCCESS", BalanceAfter: "10"}

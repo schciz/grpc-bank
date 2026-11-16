@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package report;
+
+option go_package = "grpc-bank/pkg/api/report;reportpb";
+
+service ReportService {
+  rpc GenerateReport(GenerateReportRequest) returns (GenerateReportResponse);
+}
+
+message GenerateReportRequest {
+  string account_id = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string format = 4;
+}
+
+message GenerateReportResponse {
+  string account_id = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string download_url = 4;
+  string format = 5;
+  string storage = 6;
+  string expires_in = 7;
+}

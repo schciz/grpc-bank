@@ -48,7 +48,7 @@ wait_port() {
 	return 1
 }
 
-for key in ACCOUNT_SERVICE_GRPC_PORT PAYMENT_SERVICE_GRPC_PORT GATEWAY_HTTP_PORT; do
+for key in ACCOUNT_SERVICE_GRPC_PORT PAYMENT_SERVICE_GRPC_PORT REPORT_SERVICE_GRPC_PORT GATEWAY_HTTP_PORT; do
 	if [[ -z "${!key:-}" ]]; then
 		echo ">>> Не задана переменная $key (см. .env.example)" >&2
 		exit 1
@@ -60,6 +60,9 @@ wait_port account-service "$ACCOUNT_SERVICE_GRPC_PORT"
 
 start payment-service
 wait_port payment-service "$PAYMENT_SERVICE_GRPC_PORT"
+
+start report-service
+wait_port report-service "$REPORT_SERVICE_GRPC_PORT"
 
 start api-gateway
 wait_port api-gateway "$GATEWAY_HTTP_PORT"

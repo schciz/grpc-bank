@@ -14,6 +14,7 @@ import (
 	"grpc-bank/internal/gateway/handler"
 	accountpb "grpc-bank/pkg/api/account"
 	paymentpb "grpc-bank/pkg/api/payment"
+	reportpb "grpc-bank/pkg/api/report"
 	"grpc-bank/pkg/env"
 
 	"google.golang.org/grpc"
@@ -44,8 +45,14 @@ func main() {
 	defer func() { _ = payConn.Close() }()
 	payClient := paymentpb.NewPaymentServiceClient(payConn)
 
-	// Собираем хэндлер и передаем его в роутер
-	h := handler.NewGatewayHandler(accClient, payClient)
+	repConn, err := grpc.NewClient(cfg.ReportServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to connect to report service: %v", err)
+	}
+	defer func() { _ = repConn.Close() }()
+	reportClient := reportpb.NewReportServiceClient(repConn)
+
+	h := handler.NewGatewayHandler(accClient, payClient, reportClient)
 	r := handler.NewRouter(h)
 
 	srv := &http.Server{

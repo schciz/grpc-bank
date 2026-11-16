@@ -11,6 +11,7 @@ import (
 
 	accountpb "grpc-bank/pkg/api/account"
 	paymentpb "grpc-bank/pkg/api/payment"
+	reportpb "grpc-bank/pkg/api/report"
 
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc"
@@ -76,10 +77,20 @@ func (f *fakePaymentClient) CreatePayment(context.Context, *paymentpb.CreatePaym
 	return f.createResp, f.createErr
 }
 
-func newGatewayHandler() (*GatewayHandler, *fakeAccountClient, *fakePaymentClient) {
+type fakeReportClient struct {
+	resp *reportpb.GenerateReportResponse
+	err  error
+}
+
+func (f *fakeReportClient) GenerateReport(context.Context, *reportpb.GenerateReportRequest, ...grpc.CallOption) (*reportpb.GenerateReportResponse, error) {
+	return f.resp, f.err
+}
+
+func newGatewayHandler() (*GatewayHandler, *fakeAccountClient, *fakePaymentClient, *fakeReportClient) {
 	accountClient := &fakeAccountClient{}
 	paymentClient := &fakePaymentClient{}
-	return NewGatewayHandler(accountClient, paymentClient), accountClient, paymentClient
+	reportClient := &fakeReportClient{}
+	return NewGatewayHandler(accountClient, paymentClient, reportClient), accountClient, paymentClient, reportClient
 }
 
 func doRequest(serve func(http.ResponseWriter, *http.Request), method, target, body string) *httptest.ResponseRecorder {
@@ -91,7 +102,7 @@ func doRequest(serve func(http.ResponseWriter, *http.Request), method, target, b
 
 func TestGatewayCreateAccount(t *testing.T) {
 	t.Run("creates account", func(t *testing.T) {
-		h, accountClient, _ := newGatewayHandler()
+		h, accountClient, _, _ := newGatewayHandler()
 		accountClient.createResp = &accountpb.CreateAccountResponse{
 			AccountId:     "acc-1",
 			AccountNumber: "40817810000000000001",
@@ -112,7 +123,7 @@ func TestGatewayCreateAccount(t *testing.T) {
 	})
 
 	t.Run("rejects invalid body", func(t *testing.T) {
-		h, _, _ := newGatewayHandler()
+		h, _, _, _ := newGatewayHandler()
 		rec := doRequest(h.CreateAccount, http.MethodPost, "/api/v1/accounts", `{`)
 
 		if rec.Code != http.StatusBadRequest {
@@ -136,7 +147,7 @@ func TestGatewayCreateAccount(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				h, accountClient, _ := newGatewayHandler()
+				h, accountClient, _, _ := newGatewayHandler()
 				accountClient.createErr = tt.err
 
 				rec := doRequest(h.CreateAccount, http.MethodPost, "/api/v1/accounts", `{"user_id":"user-1"}`)
@@ -156,7 +167,7 @@ func TestGatewayGetAccount(t *testing.T) {
 	}
 
 	t.Run("returns account", func(t *testing.T) {
-		h, accountClient, _ := newGatewayHandler()
+		h, accountClient, _, _ := newGatewayHandler()
 		accountClient.getResp = &accountpb.GetAccountResponse{
 			AccountId:     "acc-1",
 			UserId:        "user-1",
@@ -180,7 +191,7 @@ func TestGatewayGetAccount(t *testing.T) {
 	})
 
 	t.Run("rejects missing account id", func(t *testing.T) {
-		h, _, _ := newGatewayHandler()
+		h, _, _, _ := newGatewayHandler()
 		rec := doRequest(h.GetAccount, http.MethodGet, "/api/v1/accounts", "")
 
 		if rec.Code != http.StatusBadRequest {
@@ -189,7 +200,7 @@ func TestGatewayGetAccount(t *testing.T) {
 	})
 
 	t.Run("maps missing account to not found", func(t *testing.T) {
-		h, accountClient, _ := newGatewayHandler()
+		h, accountClient, _, _ := newGatewayHandler()
 		accountClient.getErr = status.Error(codes.NotFound, "account not found")
 
 		rec := doRequest(routerWithAccount(h).ServeHTTP, http.MethodGet, "/api/v1/accounts/acc-1", "")
@@ -201,7 +212,7 @@ func TestGatewayGetAccount(t *testing.T) {
 
 func TestGatewayDeposit(t *testing.T) {
 	t.Run("returns new balance", func(t *testing.T) {
-		h, accountClient, _ := newGatewayHandler()
+		h, accountClient, _, _ := newGatewayHandler()
 		accountClient.depositResp = &accountpb.DepositResponse{Status: "SUCCESS", BalanceAfter: "110"}
 
 		rec := doRequest(h.Deposit, http.MethodPost, "/api/v1/accounts/deposit", `{"account_id":"acc-1","amount":"10"}`)
@@ -219,7 +230,7 @@ func TestGatewayDeposit(t *testing.T) {
 	})
 
 	t.Run("rejects invalid body", func(t *testing.T) {
-		h, _, _ := newGatewayHandler()
+		h, _, _, _ := newGatewayHandler()
 		rec := doRequest(h.Deposit, http.MethodPost, "/api/v1/accounts/deposit", `{`)
 
 		if rec.Code != http.StatusBadRequest {
@@ -228,7 +239,7 @@ func TestGatewayDeposit(t *testing.T) {
 	})
 
 	t.Run("maps grpc failure", func(t *testing.T) {
-		h, accountClient, _ := newGatewayHandler()
+		h, accountClient, _, _ := newGatewayHandler()
 		accountClient.depositErr = status.Error(codes.FailedPrecondition, "rejected")
 
 		rec := doRequest(h.Deposit, http.MethodPost, "/api/v1/accounts/deposit", `{"account_id":"acc-1","amount":"10"}`)
@@ -240,7 +251,7 @@ func TestGatewayDeposit(t *testing.T) {
 
 func TestGatewayCreateTransfer(t *testing.T) {
 	t.Run("returns payment", func(t *testing.T) {
-		h, _, paymentClient := newGatewayHandler()
+		h, _, paymentClient, _ := newGatewayHandler()
 		paymentClient.createResp = &paymentpb.CreatePaymentResponse{
 			PaymentId: "payment-1",
 			Status:    "SUCCESS",
@@ -267,7 +278,7 @@ func TestGatewayCreateTransfer(t *testing.T) {
 	})
 
 	t.Run("maps grpc failure", func(t *testing.T) {
-		h, _, paymentClient := newGatewayHandler()
+		h, _, paymentClient, _ := newGatewayHandler()
 		paymentClient.createErr = status.Error(codes.FailedPrecondition, "rejected")
 
 		rec := doRequest(h.CreateTransfer, http.MethodPost, "/api/v1/transfers", `{"idempotency_key":"key-1"}`)

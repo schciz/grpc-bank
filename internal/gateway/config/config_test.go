@@ -10,6 +10,7 @@ func TestLoad(t *testing.T) {
 		t.Setenv("GATEWAY_HTTP_PORT", "9080")
 		t.Setenv("ACCOUNT_SERVICE_ADDR", "account:60051")
 		t.Setenv("PAYMENT_SERVICE_ADDR", "payment:60052")
+		t.Setenv("REPORT_SERVICE_ADDR", "report:60053")
 
 		cfg, err := Load()
 		if err != nil {
@@ -24,18 +25,22 @@ func TestLoad(t *testing.T) {
 		if cfg.PaymentServiceAddr != "payment:60052" {
 			t.Fatalf("unexpected payment service address %q", cfg.PaymentServiceAddr)
 		}
+		if cfg.ReportServiceAddr != "report:60053" {
+			t.Fatalf("unexpected report service address %q", cfg.ReportServiceAddr)
+		}
 	})
 
 	t.Run("reports missing variables", func(t *testing.T) {
 		t.Setenv("GATEWAY_HTTP_PORT", "9080")
 		t.Setenv("ACCOUNT_SERVICE_ADDR", "account:60051")
-		t.Setenv("PAYMENT_SERVICE_ADDR", "")
+		t.Setenv("PAYMENT_SERVICE_ADDR", "payment:60052")
+		t.Setenv("REPORT_SERVICE_ADDR", "")
 
 		_, err := Load()
 		if err == nil {
 			t.Fatal("expected an error")
 		}
-		if !strings.Contains(err.Error(), "PAYMENT_SERVICE_ADDR") {
+		if !strings.Contains(err.Error(), "REPORT_SERVICE_ADDR") {
 			t.Fatalf("error %q does not name the missing variable", err)
 		}
 	})
